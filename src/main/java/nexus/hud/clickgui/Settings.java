@@ -17,10 +17,7 @@ import nexus.config.*;
 import nexus.features.general.CustomKeybinds;
 import nexus.features.render.ClickGUI;
 import nexus.hud.clickgui.components.*;
-import nexus.misc.BlurEffect;
-import nexus.misc.RenderColor;
-import nexus.misc.Rendering;
-import nexus.misc.Utils;
+import nexus.misc.*;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
@@ -100,36 +97,11 @@ public class Settings extends BaseOwoScreen<FlowLayout> {
         return (int) Math.clamp(height, 30, mc.getWindow().getScaledHeight() * 0.8);
     }
 
-    private static boolean isBinding(List<FlowLayout> settings, int button) {
-        for (FlowLayout setting : settings) {
-            for (Component child : setting.children()) {
-                if (findKeybindButton(child, button)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private static boolean findKeybindButton(Component child, int button) {
-        if (child instanceof KeybindButton keybind) {
-            if (keybind.isBinding) {
-                keybind.bind(button);
-                return true;
-            }
-        } else if (child instanceof FlowLayout layout) {
-            for (Component layoutChild : layout.children()) {
-                if (findKeybindButton(layoutChild, button)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
+    // Forward key/mouse input to any KeybindButton currently awaiting a bind within these settings rows
 
     @Override
     public boolean keyPressed(KeyInput input) {
-        if (isBinding(this.settings, input.key())) {
+        if (KeybindBinding.forwardInChildren(this.settings, input.key())) {
             return true;
         }
         if (input.key() == GLFW.GLFW_KEY_PAGE_UP || input.key() == GLFW.GLFW_KEY_PAGE_DOWN) {
@@ -147,7 +119,7 @@ public class Settings extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
-        if (isBinding(this.settings, click.button())) {
+        if (KeybindBinding.forwardInChildren(this.settings, click.button())) {
             return true;
         }
         return super.mouseClicked(click, doubled);

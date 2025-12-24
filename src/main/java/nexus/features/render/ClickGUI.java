@@ -66,6 +66,7 @@ public class ClickGUI {
             if (event.action == GLFW.GLFW_PRESS) {
                 Utils.setScreen(new ClickGui());
             }
+            event.cancel();
         }
     }
 }

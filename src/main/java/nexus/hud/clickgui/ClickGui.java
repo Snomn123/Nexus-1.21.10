@@ -17,7 +17,7 @@ import nexus.features.render.*;
 import nexus.hud.HudEditorScreen;
 import nexus.hud.clickgui.components.PlainLabel;
 import nexus.misc.BlurEffect;
-import nexus.misc.RenderColor;
+import nexus.misc.KeybindBinding;
 import nexus.misc.Rendering;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
@@ -55,11 +55,24 @@ public class ClickGui extends BaseOwoScreen<FlowLayout> {
 
     @Override
     public boolean keyPressed(KeyInput input) {
+        // If any KeybindButton is waiting for input, bind it first
+        if (forwardBinding(input.key())) {
+            return true;
+        }
         if (input.key() != GLFW.GLFW_KEY_LEFT && input.key() != GLFW.GLFW_KEY_RIGHT && input.key() != GLFW.GLFW_KEY_PAGE_DOWN && input.key() != GLFW.GLFW_KEY_PAGE_UP) {
             return super.keyPressed(input);
         } else {
             return this.mainScroll.onMouseScroll(0, 0, input.key() == GLFW.GLFW_KEY_PAGE_UP ? 4 : -4);
         }
+    }
+
+    @Override
+    public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
+        // Forward mouse buttons to any waiting KeybindButton
+        if (forwardBinding(click.button())) {
+            return true;
+        }
+        return super.mouseClicked(click, doubled);
     }
 
     @Override
@@ -117,6 +130,29 @@ public class ClickGui extends BaseOwoScreen<FlowLayout> {
             module.horizontalSizing(Sizing.fixed(this.contentAreaWidth)); // Explicit width constraint
             this.mainContentArea.child(module);
         }
+    }
+
+    // Attempt to bind inside the currently selected category first, then fall back to all categories
+    private boolean forwardBinding(int keyOrButton) {
+        // Prefer currently selected category if present
+        if (this.selectedCategory != null) {
+            for (Module module : this.selectedCategory.features) {
+                if (module.settingsContainer != null && KeybindBinding.forwardInLayout(module.settingsContainer, keyOrButton)) {
+                    return true;
+                }
+            }
+        }
+        // Fallback: scan all categories
+        if (this.categories != null) {
+            for (Category category : this.categories) {
+                for (Module module : category.features) {
+                    if (module.settingsContainer != null && KeybindBinding.forwardInLayout(module.settingsContainer, keyOrButton)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     @Override
