@@ -516,16 +516,16 @@ public class Utils {
                     if (line.startsWith("mod_version=")) {
                         String newest = line.replace("mod_version=", "");
                         if (getVersionNumber(newest) > getVersionNumber(version)) {
-                            infoLink(format("§a§lNew version available! §aClick here to open the Modrinth releases page. §7Current: {}, Newest: {}", version, newest), "https://github.com/Snomn123/Nexus-1.21.10");
+                            mc.execute(() -> infoLink(format("§a§lNew version available! §aClick here to open the github releases page. §7Current: {}, Newest: {}", version, newest), "https://github.com/Snomn123/Nexus-1.21.10/releases"));
                             return;
                         }
                     }
                 }
                 if (notifyIfMatch) {
-                    info("§aNexus is up to date.");
+                    mc.execute(() -> info("§aNexus is up to date."));
                 }
             } catch (IOException e) {
-                info("§cAn error occurred while checking for an update. Additional information can be found in the log.");
+                mc.execute(() -> info("§cAn error occurred while checking for an update. Additional information can be found in the log."));
                 StringBuilder trace = new StringBuilder();
                 for (StackTraceElement element : e.getStackTrace()) {
                     trace.append("\n\tat ").append(element.toString());

@@ -64,8 +64,12 @@ public class HudManager {
     private static void onPing(ReceivePacketEvent event) {
         if (event.packet instanceof PingResultS2CPacket pingPacket) {
             if (pingElement.isActive()) {
-                pingElement.setPing(Util.getMeasuringTimeMs() - pingPacket.startTime());
-                pingElement.ticks = 20;
+                long ping = Util.getMeasuringTimeMs() - pingPacket.startTime();
+                // Schedule UI update on render thread to avoid "RenderSystem called from wrong thread" error
+                mc.execute(() -> {
+                    pingElement.setPing(ping);
+                    pingElement.ticks = 20;
+                });
             }
         }
     }
