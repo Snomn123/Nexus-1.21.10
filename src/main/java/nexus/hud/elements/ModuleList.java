@@ -12,13 +12,17 @@ import nexus.hud.HudElement;
 import nexus.hud.clickgui.Settings;
 import nexus.hud.clickgui.components.PlainLabel;
 
-import java.io.File;
-import java.lang.reflect.Field;
-import java.net.URL;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static nexus.Main.mc;
+
+// Import all feature classes
+import nexus.features.general.AutoSprint;
+import nexus.features.general.CustomKeybinds;
+import nexus.features.misc.AutoSave;
+import nexus.features.misc.UpdateChecker;
+import nexus.features.render.ClickGUI;
+import nexus.features.render.Fullbright;
 
 public class ModuleList extends HudElement {
     private final SettingInt gap = new SettingInt(5, "gap", this.instance);
@@ -55,63 +59,18 @@ public class ModuleList extends HudElement {
     }
 
     private void collectFeatures() {
-        // Get all features from their packages
-        String[] packages = {"nexus.features.general", "nexus.features.misc", "nexus.features.render"};
+        // Manually register all features
+        // General features
+        allFeatures.add(AutoSprint.instance);
+        allFeatures.add(CustomKeybinds.instance);
         
-        for (String packageName : packages) {
-            try {
-                Class<?>[] classes = getClasses(packageName);
-                for (Class<?> clazz : classes) {
-                    try {
-                        Field instanceField = clazz.getDeclaredField("instance");
-                        if (java.lang.reflect.Modifier.isStatic(instanceField.getModifiers()) && 
-                            Feature.class.isAssignableFrom(instanceField.getType())) {
-                            instanceField.setAccessible(true);
-                            Feature feature = (Feature) instanceField.get(null);
-                            if (feature != null) {
-                                allFeatures.add(feature);
-                            }
-                        }
-                    } catch (Exception e) {
-                        // No instance field or not accessible
-                    }
-                }
-            } catch (Exception e) {
-                // Package not found or not accessible
-            }
-        }
-    }
-
-    private Class<?>[] getClasses(String packageName) throws Exception {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String path = packageName.replace('.', '/');
-        URL resource = classLoader.getResource(path);
-        if (resource == null) {
-            return new Class<?>[0];
-        }
+        // Misc features
+        allFeatures.add(AutoSave.instance);
+        allFeatures.add(UpdateChecker.instance);
         
-        File directory = new File(resource.getFile());
-        if (!directory.exists()) {
-            return new Class<?>[0];
-        }
-        
-        File[] files = directory.listFiles();
-        if (files == null) {
-            return new Class<?>[0];
-        }
-        
-        List<Class<?>> classes = new ArrayList<>();
-        for (File file : files) {
-            if (file.getName().endsWith(".class")) {
-                String className = packageName + '.' + file.getName().substring(0, file.getName().length() - 6);
-                try {
-                    classes.add(Class.forName(className));
-                } catch (ClassNotFoundException e) {
-                    // Skip
-                }
-            }
-        }
-        return classes.toArray(new Class<?>[0]);
+        // Render features
+        allFeatures.add(ClickGUI.instance);
+        allFeatures.add(Fullbright.instance);
     }
 
     private String formatModuleName(String key) {
