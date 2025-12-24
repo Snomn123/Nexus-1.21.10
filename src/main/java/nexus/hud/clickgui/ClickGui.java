@@ -168,7 +168,9 @@ public class ClickGui extends BaseOwoScreen<FlowLayout> {
                         new Module("Custom Keybinds", CustomKeybinds.instance, CustomKeybinds.buildSettings())
                 )),
                 new Category("Misc", List.of(
-                        new Module("Update Checker", UpdateChecker.instance),
+                        new Module("Update Checker", UpdateChecker.instance, new Settings(List.of(
+                                new Settings.Toggle("Notify on Join", UpdateChecker.notifyOnJoin, "Notifies you in chat when joining a server if there is an update available.")
+                        ))),
                         new Module("Auto Save", AutoSave.instance)
                 )),
                 new Category("Render", List.of(
