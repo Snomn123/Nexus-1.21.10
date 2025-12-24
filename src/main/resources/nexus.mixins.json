@@ -1,0 +1,30 @@
+{
+  "required": true,
+  "package": "nexus.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "BossBarHudAccessor",
+    "ClientConnectionMixin",
+    "ClientPlayerEntityMixin",
+    "ClientPlayerInteractionManagerAccessor",
+    "ClientPlayerInteractionManagerMixin",
+    "ClientPlayNetworkHandlerMixin",
+    "ClientWorldMixin",
+    "DrawContextMixin",
+    "EntityMixin",
+    "HandledScreenAccessor",
+    "HandledScreenMixin",
+    "InGameHudMixin",
+    "KeyboardMixin",
+    "LightmapTextureManagerMixin",
+    "LivingEntityMixin",
+    "MinecraftClientMixin",
+    "MouseMixin",
+    "PlayerListHudAccessor",
+    "WorldMixin",
+    "WorldRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

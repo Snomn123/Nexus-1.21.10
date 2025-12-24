@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "nexus",
+  "version": "${version}",
+  "custom": { "firmament:hide_from_modlist": true },
+  "name": "Nexus",
+  "description": "A mod for hypixel skyblock that is used and developed by me",
+  "authors": [
+    "Snomn"
+  ],
+  "contact": {
+    "sources": "https://github.com/WhatYouThing/NoFrills"
+  },
+  "license": "GPL-3.0",
+  "icon": "assets/nexus/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "nexus.Main"
+    ]
+  },
+  "mixins": [
+    "nexus.mixins.json"
+  ],
+  "accessWidener" : "nexus.accesswidener",
+  "depends": {
+    "fabricloader": ">=0.17.3",
+    "fabric-api": "*",
+    "minecraft": ">=1.21.9",
+    "java": ">=21"
+  }
+}

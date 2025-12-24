@@ -1,0 +1,38 @@
+package nexus.features.render;
+
+import meteordevelopment.orbit.EventHandler;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import nexus.config.Feature;
+import nexus.config.SettingBool;
+import nexus.config.SettingEnum;
+import nexus.events.WorldTickEvent;
+
+import static nexus.Main.mc;
+
+public class Fullbright {
+    public static final Feature instance = new Feature("fullbright");
+
+    public static final SettingEnum<modes> mode = new SettingEnum<>(modes.Gamma, modes.class, "mode", instance.key());
+    public static final SettingBool noEffect = new SettingBool(false, "noEffect", instance.key());
+
+    public static final float gamma = 1600.0f;
+    public static final float ambient = 1.0f;
+
+    @EventHandler
+    private static void onTick(WorldTickEvent event) {
+        if (instance.isActive() && mc.player != null) {
+            if (mode.value().equals(modes.Potion)) {
+                mc.player.addStatusEffect(new StatusEffectInstance(StatusEffects.NIGHT_VISION, 840));
+            } else if (noEffect.value()) {
+                mc.player.removeStatusEffect(StatusEffects.NIGHT_VISION);
+            }
+        }
+    }
+
+    public enum modes {
+        Gamma,
+        Ambient,
+        Potion
+    }
+}
