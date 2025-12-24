@@ -511,18 +511,18 @@ public class Utils {
         new Thread(() -> {
             try {
                 String version = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow().getMetadata().getVersion().getFriendlyString();
-                InputStream connection = URI.create("https://raw.githubusercontent.com/WhatYouThing/NoFrills/refs/heads/main/gradle.properties").toURL().openStream();
+                InputStream connection = URI.create("https://raw.githubusercontent.com/Snomn123/Nexus-1.21.10/refs/heads/master/gradle.properties").toURL().openStream();
                 for (String line : IOUtils.toString(connection, StandardCharsets.UTF_8).split("\n")) {
                     if (line.startsWith("mod_version=")) {
                         String newest = line.replace("mod_version=", "");
                         if (getVersionNumber(newest) > getVersionNumber(version)) {
-                            infoLink(format("§a§lNew version available! §aClick here to open the Modrinth releases page. §7Current: {}, Newest: {}", version, newest), "https://modrinth.com/mod/nofrills/versions");
+                            infoLink(format("§a§lNew version available! §aClick here to open the Modrinth releases page. §7Current: {}, Newest: {}", version, newest), "https://github.com/Snomn123/Nexus-1.21.10");
                             return;
                         }
                     }
                 }
                 if (notifyIfMatch) {
-                    info("§aNoFrills is up to date.");
+                    info("§aNexus is up to date.");
                 }
             } catch (IOException e) {
                 info("§cAn error occurred while checking for an update. Additional information can be found in the log.");
