@@ -80,4 +80,9 @@ public abstract class MinecraftClientMixin {
     private void beforeStop(CallbackInfo ci) {
         Config.save();
     }
+
+    @Inject(method = "setWorld", at = @At("HEAD"))
+    private void onWorldChange(ClientWorld world, CallbackInfo ci) {
+        eventBus.post(new WorldChangeEvent(world));
+    }
 }

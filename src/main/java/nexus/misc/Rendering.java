@@ -58,6 +58,51 @@ public final class Rendering {
         matrices.scale(scale, -scale, scale);
         mc.textRenderer.draw(text, -mc.textRenderer.getWidth(text) / 2f, 1.0f, color.argb, true, matrices, consumer, throughWalls ? TextRenderer.TextLayerType.SEE_THROUGH : TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
     }
+    
+    /**
+     * Draws text with a background box and border for better readability.
+     */
+    public static void drawTextWithBackground(VertexConsumerProvider.Immediate consumer, Camera camera, Vec3d pos, Text text, float scale, boolean throughWalls, RenderColor color) {
+        Matrix4f matrices = new Matrix4f();
+        Vec3d camPos = camera.getPos();
+        float textX = (float) (pos.getX() - camPos.getX());
+        float textY = (float) (pos.getY() - camPos.getY());
+        float textZ = (float) (pos.getZ() - camPos.getZ());
+        matrices.translate(textX, textY, textZ);
+        matrices.rotate(camera.getRotation());
+        matrices.scale(scale, -scale, scale);
+        
+        int textWidth = mc.textRenderer.getWidth(text);
+        int padding = 3;
+        int bgWidth = textWidth + padding * 2;
+        int bgHeight = 10 + padding * 2;
+        int bgX = -bgWidth / 2;
+        int bgY = -padding;
+        
+        // Draw background
+        VertexConsumer buffer = throughWalls 
+            ? consumer.getBuffer(Layers.BoxFilledNoCull)
+            : consumer.getBuffer(Layers.BoxFilled);
+        
+        int bgAlpha = (int) (0.75 * 255);
+        int backgroundColor = (bgAlpha << 24) | 0x000000;
+        
+        drawRect(matrices, buffer, bgX, bgY, bgX + bgWidth, bgY + bgHeight, backgroundColor);
+        
+        // Draw border (2px thick)
+        int borderColor = color.argb;
+        int borderAlpha = 255;
+        int finalBorderColor = (borderAlpha << 24) | (borderColor & 0xFFFFFF);
+        int borderThickness = 2;
+        
+        drawRect(matrices, buffer, bgX, bgY, bgX + bgWidth, bgY + borderThickness, finalBorderColor);
+        drawRect(matrices, buffer, bgX, bgY + bgHeight - borderThickness, bgX + bgWidth, bgY + bgHeight, finalBorderColor);
+        drawRect(matrices, buffer, bgX, bgY, bgX + borderThickness, bgY + bgHeight, finalBorderColor);
+        drawRect(matrices, buffer, bgX + bgWidth - borderThickness, bgY, bgX + bgWidth, bgY + bgHeight, finalBorderColor);
+        
+        // Draw text
+        mc.textRenderer.draw(text, -textWidth / 2f, 0, color.argb | 0xFF000000, true, matrices, consumer, throughWalls ? TextRenderer.TextLayerType.SEE_THROUGH : TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+    }
 
     /**
      * Draws a simulated beacon beam for the current frame. Automatically performs the required matrix stack translation.
@@ -80,6 +125,22 @@ public final class Rendering {
         buffer.vertex(entry, (float) point.getX(), (float) point.getY(), (float) point.getZ()).color(color.r, color.g, color.b, color.a).normal(entry, normal);
         buffer.vertex(entry, (float) pos.getX(), (float) pos.getY(), (float) pos.getZ()).color(color.r, color.g, color.b, color.a).normal(entry, normal);
         matrices.pop();
+    }
+
+    /**
+     * Draws a filled 2D rectangle in world space (for labels, overlays, etc.)
+     */
+    public static void drawRect(Matrix4f matrix, VertexConsumer buffer, int x1, int y1, int x2, int y2, int color) {
+        float r = ((color >> 16) & 0xFF) / 255.0f;
+        float g = ((color >> 8) & 0xFF) / 255.0f;
+        float b = (color & 0xFF) / 255.0f;
+        float a = ((color >> 24) & 0xFF) / 255.0f;
+
+        // Draw two triangles to form a rectangle
+        buffer.vertex(matrix, x1, y2, 0).color(r, g, b, a);
+        buffer.vertex(matrix, x2, y2, 0).color(r, g, b, a);
+        buffer.vertex(matrix, x2, y1, 0).color(r, g, b, a);
+        buffer.vertex(matrix, x1, y1, 0).color(r, g, b, a);
     }
 
     public static void drawBorder(DrawContext context, int x, int y, int width, int height, RenderColor color) {
@@ -189,6 +250,12 @@ public final class Rendering {
                 .withFragmentShader("core/position_color")
                 .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
                 .build());
+        public static final RenderPipeline lineDepthTest = RenderPipelines.register(RenderPipeline.builder(outlineSnippet)
+                .withLocation(Identifier.of("nexus", "pipeline/nofrills_line_depth_test"))
+                .withVertexFormat(VertexFormats.POSITION_COLOR, VertexFormat.DrawMode.DEBUG_LINES)
+                .withVertexShader("core/position_color")
+                .withFragmentShader("core/position_color")
+                .build());
     }
 
     public static class Parameters {
@@ -238,6 +305,14 @@ public final class Rendering {
                 false,
                 false,
                 Pipelines.lineNoCull,
+                Parameters.lines.build(false)
+        );
+        public static final RenderLayer.MultiPhase LineDepthTest = RenderLayer.of(
+                "nofrills_line_depth_test",
+                RenderLayer.DEFAULT_BUFFER_SIZE,
+                false,
+                false,
+                Pipelines.lineDepthTest,
                 Parameters.lines.build(false)
         );
     }

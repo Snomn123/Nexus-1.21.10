@@ -11,6 +11,7 @@ import io.wispforest.owo.ui.core.*;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
+import nexus.features.combat.KillAura;
 import nexus.features.general.*;
 import nexus.features.misc.*;
 import nexus.features.render.*;
@@ -59,11 +60,20 @@ public class ClickGui extends BaseOwoScreen<FlowLayout> {
         if (forwardBinding(input.key())) {
             return true;
         }
-        if (input.key() != GLFW.GLFW_KEY_LEFT && input.key() != GLFW.GLFW_KEY_RIGHT && input.key() != GLFW.GLFW_KEY_PAGE_DOWN && input.key() != GLFW.GLFW_KEY_PAGE_UP) {
-            return super.keyPressed(input);
-        } else {
+
+        // Try to pass the key to the focused component first (textboxes, etc.)
+        // This allows textboxes to use arrow keys for cursor navigation
+        if (super.keyPressed(input)) {
+            return true;
+        }
+
+        // Only use arrow keys for scrolling if nothing else consumed them
+        if (input.key() == GLFW.GLFW_KEY_LEFT || input.key() == GLFW.GLFW_KEY_RIGHT ||
+            input.key() == GLFW.GLFW_KEY_PAGE_DOWN || input.key() == GLFW.GLFW_KEY_PAGE_UP) {
             return this.mainScroll.onMouseScroll(0, 0, input.key() == GLFW.GLFW_KEY_PAGE_UP ? 4 : -4);
         }
+
+        return false;
     }
 
     @Override
@@ -161,6 +171,25 @@ public class ClickGui extends BaseOwoScreen<FlowLayout> {
         
         // Initialize categories
         this.categories = Lists.newArrayList(
+                new Category("Combat", List.of(
+                        new Module("Kill Aura", KillAura.instance, new Settings(List.of(
+                                new Settings.Keybind("Toggle Keybind", KillAura.toggleKey, "The keybind used to enable/disable Kill Aura."),
+                                new Settings.Dropdown<>("Targeting", KillAura.Targeting, "Targeting mode (Single = stick to one target, Switch = cycle through targets with delay)."),
+                                new Settings.SliderDouble("Switch Delay", 0.0, 300.0, 10.0, KillAura.SwitchDelay, "Delay in milliseconds between switching targets (only for Switch mode)."),
+                                new Settings.SliderDouble("Range", 1.0, 6.0, 0.1, KillAura.Range, "The maximum distance to attack entities."),
+                                new Settings.SliderDouble("Min CPS", 3.0, 20.0, 0.5, KillAura.MinCPS, "Minimum clicks per second."),
+                                new Settings.SliderDouble("Max CPS", 3.0, 20.0, 0.5, KillAura.MaxCPS, "Maximum clicks per second."),
+                                new Settings.Dropdown<>("Sorting", KillAura.Sorting, "How to sort targets (Distance = closest first, Health = lowest health first)."),
+                                new Settings.Dropdown<>("Target Point", KillAura.TargetPointMode, "Where to aim on the entity (Closest = nearest point, Middle = center of entity)."),
+                                new Settings.SliderDouble("FOV", 0.0, 360.0, 5.0, KillAura.FOV, "Field of view in degrees (180 = in front, 360 = all around)."),
+                                new Settings.Toggle("Right Click", KillAura.RightClick, "Whether to use right click (interact) instead of left click (attack)."),
+                                new Settings.TextInput("Target Types", KillAura.TargetTypes, "Comma-separated list of entity types to target. Use namesOnly module to middle-click entities and add their types."),
+                                new Settings.Toggle("Through Walls", KillAura.ThroughWalls, "Whether to attack entities through walls."),
+                                new Settings.Toggle("Draw Range", KillAura.DrawRange, "Draw a circle showing the attack range around you."),
+                                new Settings.Toggle("Disable on World Change", KillAura.DisableOnWorldChange, "Automatically disable Kill Aura when changing worlds/servers."),
+                                new Settings.Toggle("Should Log", KillAura.shouldLogFeature, "Print debug information to chat.")
+                        )))
+                )),
                 new Category("General", List.of(
                         new Module("Auto Sprint", AutoSprint.instance, new Settings(List.of(
                                 new Settings.Toggle("Water Check", AutoSprint.waterCheck, "Prevents Auto Sprint from working while you are in water.")
@@ -171,9 +200,79 @@ public class ClickGui extends BaseOwoScreen<FlowLayout> {
                         new Module("Update Checker", UpdateChecker.instance, new Settings(List.of(
                                 new Settings.Toggle("Notify on Join", UpdateChecker.notifyOnJoin, "Notifies you in chat when joining a server if there is an update available.")
                         ))),
-                        new Module("Auto Save", AutoSave.instance)
+                        new Module("Auto Save", AutoSave.instance),
+                        new Module("Names Only", namesOnly.instance, new Settings(List.of(
+                                new Settings.Toggle("On Middle Click", namesOnly.onMiddleClick, "Add or remove entities from KillAura's target list by middle-clicking them."),
+                                new Settings.Dropdown<>("Target Mode", namesOnly.targetMode, "Type = target all entities of the same type (e.g., all Zombies). Name = target entities with specific names (e.g., specific NPCs)."),
+                                new Settings.TextInput("Target Names", namesOnly.TargetNames, "Comma-separated list of entity names to target. Only used when Target Mode is set to Name."),
+                                new Settings.Toggle("Debug", namesOnly.debug, "Print debug information to chat when adding/removing entities.")
+                        )))
                 )),
                 new Category("Render", List.of(
+                        new Module("ESP", ESP.instance, new Settings(List.of(
+                                new Settings.Separator("Render Settings"),
+                                new Settings.Dropdown<>("Render Mode", ESP.renderMode, "How to render ESP boxes (Outline, Fill, or Both)."),
+                                new Settings.Toggle("Through Walls", ESP.throughWalls, "Render ESP through walls."),
+                                new Settings.SliderDouble("Fill Opacity", 0.0, 1.0, 0.05, ESP.fillOpacity, "Opacity of the filled ESP boxes."),
+                                new Settings.Separator("Box Size"),
+                                new Settings.SliderDouble("Expand X", -0.5, 1.0, 0.05, ESP.boxExpandX, "Expand entity box on X axis."),
+                                new Settings.SliderDouble("Expand Y", -0.5, 1.0, 0.05, ESP.boxExpandY, "Expand entity box on Y axis."),
+                                new Settings.SliderDouble("Expand Z", -0.5, 1.0, 0.05, ESP.boxExpandZ, "Expand entity box on Z axis."),
+                                new Settings.Separator("Entity Types"),
+                                new Settings.Toggle("Show Players", ESP.showPlayers, "Show ESP on players."),
+                                new Settings.Toggle("Show Hostile", ESP.showHostile, "Show ESP on hostile mobs."),
+                                new Settings.Toggle("Show Passive", ESP.showPassive, "Show ESP on passive mobs."),
+                                new Settings.Toggle("Show Armor Stands", ESP.showArmorStands, "Show ESP on armor stands (useful for server NPCs)."),
+                                new Settings.Toggle("Show Other", ESP.showOther, "Show ESP on other entities."),
+                                new Settings.Separator("Filters"),
+                                new Settings.TextInput("Entity Type Filter", ESP.entityTypeFilter, "Comma-separated list of entity types to filter (e.g., zombie, skeleton)."),
+                                new Settings.TextInput("Entity Name Filter", ESP.entityNameFilter, "Comma-separated list of entity names to filter (e.g., Shop, Quest NPC). Great for armor stands on servers."),
+                                new Settings.Toggle("Blacklist Mode", ESP.filterMode, "false = whitelist (only show filtered), true = blacklist (hide filtered)."),
+                                new Settings.SliderDouble("Max Range", 16.0, 256.0, 8.0, ESP.maxRange, "Maximum distance to render ESP."),
+                                new Settings.Separator("Colors"),
+                                new Settings.Dropdown<>("Color Mode", ESP.colorMode, "EntityType = color by type, HealthBased = color by health, Distance = color by distance, Single = one color."),
+                                new Settings.ColorPicker("Player Color", false, ESP.playerColor, "Color for players (or single color in Single mode)."),
+                                new Settings.ColorPicker("Hostile Color", false, ESP.hostileColor, "Color for hostile mobs."),
+                                new Settings.ColorPicker("Passive Color", false, ESP.passiveColor, "Color for passive mobs."),
+                                new Settings.ColorPicker("Armor Stand Color", false, ESP.armorStandColor, "Color for armor stands."),
+                                new Settings.ColorPicker("Other Color", false, ESP.otherColor, "Color for other entities."),
+                                new Settings.ColorPicker("Health Low Color", false, ESP.healthBasedLowColor, "Color for low health (health-based mode)."),
+                                new Settings.ColorPicker("Health High Color", false, ESP.healthBasedHighColor, "Color for high health (health-based mode)."),
+                                new Settings.Separator("Extras"),
+                                new Settings.Toggle("Show Tracers", ESP.showTracers, "Draw lines from camera to entities."),
+                                new Settings.ColorPicker("Tracer Color", false, ESP.tracerColor, "Color for tracer lines."),
+                                new Settings.Toggle("Show Labels", ESP.showLabels, "Show name labels above entities."),
+                                new Settings.SliderDouble("Label Scale", 0.01, 0.1, 0.005, ESP.labelScale, "Size of the labels."),
+                                new Settings.Toggle("Show Distance", ESP.showDistance, "Show distance in labels."),
+                                new Settings.Toggle("Show Health", ESP.showHealth, "Show health in labels."),
+                                new Settings.Toggle("Label Background", ESP.labelBackground, "Draw background box behind labels."),
+                                new Settings.SliderDouble("Background Opacity", 0.0, 1.0, 0.05, ESP.labelBackgroundOpacity, "Opacity of label background."),
+                                new Settings.Toggle("Colored Labels", ESP.coloredLabels, "Color labels based on entity type and health."),
+                                new Settings.Toggle("Show Beam", ESP.showBeam, "Show beacon-style beam above entities."),
+                                new Settings.SliderInt("Beam Height", 64, 512, 16, ESP.beamHeight, "Height of the beacon beam."),
+                                new Settings.Toggle("Exclude Pests", ESP.excludePests, "Don't render pests in ESP if PestESP is active (prevents double-rendering).")
+                        ))),
+                        new Module("Pest ESP", PestESP.instance, new Settings(List.of(
+                                new Settings.Separator("Render Settings"),
+                                new Settings.Dropdown<>("Render Mode", PestESP.renderMode, "How to render pest ESP boxes (Outline, Fill, or Both)."),
+                                new Settings.Toggle("Through Walls", PestESP.throughWalls, "Render pest ESP through walls."),
+                                new Settings.SliderDouble("Fill Opacity", 0.0, 1.0, 0.05, PestESP.fillOpacity, "Opacity of the filled pest ESP boxes."),
+                                new Settings.Separator("Box Size"),
+                                new Settings.SliderDouble("Expand X", -0.5, 1.0, 0.05, PestESP.boxExpandX, "Expand pest box on X axis."),
+                                new Settings.SliderDouble("Expand Y", -0.5, 1.0, 0.05, PestESP.boxExpandY, "Expand pest box on Y axis."),
+                                new Settings.SliderDouble("Expand Z", -0.5, 1.0, 0.05, PestESP.boxExpandZ, "Expand pest box on Z axis."),
+                                new Settings.Separator("Color"),
+                                new Settings.ColorPicker("Pest Color", false, PestESP.pestColor, "Color for pest ESP (default: orange)."),
+                                new Settings.Separator("Range"),
+                                new Settings.SliderDouble("Max Range", 16.0, 256.0, 8.0, PestESP.maxRange, "Maximum distance to render pest ESP."),
+                                new Settings.Separator("Extras"),
+                                new Settings.Toggle("Show Beam", PestESP.showBeam, "Show beacon-style beam above pests."),
+                                new Settings.SliderInt("Beam Height", 64, 512, 16, PestESP.beamHeight, "Height of the beacon beam for pests."),
+                                new Settings.Toggle("Show Label", PestESP.showLabel, "Show name label above pests."),
+                                new Settings.SliderDouble("Label Scale", 0.01, 0.1, 0.005, PestESP.labelScale, "Size of the pest labels."),
+                                new Settings.Toggle("Show Distance", PestESP.showDistance, "Show distance in pest labels."),
+                                new Settings.Toggle("Show Tracers", PestESP.showTracers, "Draw lines from camera to pests.")
+                        ))),
                         new Module("Click GUI", ClickGUI.instance, new Settings(List.of(
                                 new Settings.Keybind("Open Keybind", ClickGUI.openKey, "The keybind used to open the Click GUI."),
                                 new Settings.Separator("Background Effects"),

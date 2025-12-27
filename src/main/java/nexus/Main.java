@@ -12,6 +12,7 @@ import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.util.Util;
 import nexus.commands.NexusCommand;
 import nexus.config.Config;
+import nexus.features.combat.*;
 import nexus.features.general.*;
 import nexus.features.misc.*;
 import nexus.features.render.*;
@@ -71,6 +72,11 @@ public class Main implements ModInitializer {
         eventBus.subscribe(Fullbright.class);
         eventBus.subscribe(ClickGUI.class);
         eventBus.subscribe(CustomKeybinds.class);
+        eventBus.subscribe(KillAura.class);
+        eventBus.subscribe(namesOnly.class);
+        eventBus.subscribe(AutoSave.class);
+        eventBus.subscribe(ESP.class);
+        eventBus.subscribe(PestESP.class);
         LOGGER.info("Nexus mod initialized in {}ms.", Util.getMeasuringTimeMs() - start);
     }
 }

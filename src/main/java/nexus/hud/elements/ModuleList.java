@@ -8,6 +8,10 @@ import net.minecraft.text.Text;
 import nexus.config.Feature;
 import nexus.config.SettingBool;
 import nexus.config.SettingInt;
+import nexus.features.combat.*;
+import nexus.features.general.*;
+import nexus.features.misc.*;
+import nexus.features.render.*;
 import nexus.hud.HudElement;
 import nexus.hud.clickgui.Settings;
 import nexus.hud.clickgui.components.PlainLabel;
@@ -15,14 +19,6 @@ import nexus.hud.clickgui.components.PlainLabel;
 import java.util.*;
 
 import static nexus.Main.mc;
-
-// Import all feature classes
-import nexus.features.general.AutoSprint;
-import nexus.features.general.CustomKeybinds;
-import nexus.features.misc.AutoSave;
-import nexus.features.misc.UpdateChecker;
-import nexus.features.render.ClickGUI;
-import nexus.features.render.Fullbright;
 
 public class ModuleList extends HudElement {
     private final SettingInt gap = new SettingInt(5, "gap", this.instance);
@@ -60,6 +56,8 @@ public class ModuleList extends HudElement {
 
     private void collectFeatures() {
         // Manually register all features
+        // Combat features
+        allFeatures.add(KillAura.instance);
         // General features
         allFeatures.add(AutoSprint.instance);
         allFeatures.add(CustomKeybinds.instance);
@@ -67,10 +65,13 @@ public class ModuleList extends HudElement {
         // Misc features
         allFeatures.add(AutoSave.instance);
         allFeatures.add(UpdateChecker.instance);
-        
+        allFeatures.add(namesOnly.instance);
+
         // Render features
         allFeatures.add(ClickGUI.instance);
+        allFeatures.add(ESP.instance);
         allFeatures.add(Fullbright.instance);
+        allFeatures.add(PestESP.instance);
     }
 
     private String formatModuleName(String key) {
